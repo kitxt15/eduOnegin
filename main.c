@@ -208,7 +208,7 @@ int WriteFile(const char* filename, struct TextString data[]) {
     return 0;
 }
 
-int strcmprev_new(const struct TextString str1, const struct TextString str2) {
+int StrCmpRevNew(const struct TextString str1, const struct TextString str2) {
 
     int len1 = str1.len, len2 = str2.len;
     int count1 = len1 - 1, count2 = len2 - 1;
@@ -271,7 +271,7 @@ int strcmprev_new(const struct TextString str1, const struct TextString str2) {
 }
 
 
-int strcmp_new(const struct TextString str1, const struct TextString str2) {
+int StrCmpNew(const struct TextString str1, const struct TextString str2) {
 
     int count = 0;
     int offset1 = 0; int offset2 = 0;
@@ -328,7 +328,7 @@ void FreeAllPtrs(char** index_arr) {
 
 }
 
-void printArray(struct TextString data[], const size_t len, const int leftPos, const int pivotPos, const int rightPos, const char* comment) {
+void PrintArray(struct TextString data[], const size_t len, const int leftPos, const int pivotPos, const int rightPos, const char* comment) {
 
     if (DEBUG) {
         //INIT INDEX LINE
@@ -423,9 +423,9 @@ void printArray(struct TextString data[], const size_t len, const int leftPos, c
     printf("P: <%s>\n", data[pivotPos].string);
     printf("R: <%s>\n", data[rightPos].string);
     printf("\n");
-    printf("L и P: %d \n", strcmp_new(data[leftPos], data[pivotPos]));
-    printf("P и R: %d \n", strcmp_new(data[pivotPos], data[rightPos]));
-    printf("L и R: %d \n", strcmp_new(data[leftPos], data[rightPos]));
+    printf("L и P: %d \n", StrCmpNew(data[leftPos], data[pivotPos]));
+    printf("P и R: %d \n", StrCmpNew(data[pivotPos], data[rightPos]));
+    printf("L и R: %d \n", StrCmpNew(data[leftPos], data[rightPos]));
     printf("\n");
     getchar();
     }
@@ -453,27 +453,27 @@ struct TextString* quickSortStr
     int leftPos = left;
     int rightPos = right;
 
-    printArray(data, len, leftPos, pivotPos, rightPos, "Начальное положение новой итерации компановки.");
+    PrintArray(data, len, leftPos, pivotPos, rightPos, "Начальное положение новой итерации компановки.");
 
-    while (leftPos <= rightPos) {
+    while (leftPos <= rightPos - 1) {
         if (DEBUG) {
         printf("\n");
         }
         assert(leftPos < rightPos);
 
         if (CompareMachine(&data[leftPos], &pivot) > 0) {
-            printArray(data, len, leftPos, pivotPos, rightPos, "Нашли L, который надо переставить.");
+            PrintArray(data, len, leftPos, pivotPos, rightPos, "Нашли L, который надо переставить.");
 
             while (rightPos > pivotPos) {
                 assert(rightPos > pivotPos);
-                printArray(data, len, leftPos, pivotPos, rightPos, "Ищем R, который подойдет");
+                PrintArray(data, len, leftPos, pivotPos, rightPos, "Ищем R, который подойдет");
 
                 if (CompareMachine(&data[rightPos], &pivot) < 0) {
                     struct TextString temp = {};
                     temp = data[rightPos];
                     data[rightPos] = data[leftPos];
                     data[leftPos] = temp;
-                    printArray(data, len, leftPos, pivotPos, rightPos, "Поменяли L и R");
+                    PrintArray(data, len, leftPos, pivotPos, rightPos, "Поменяли L и R");
                     break;
                 }
                 rightPos--;
@@ -488,18 +488,18 @@ struct TextString* quickSortStr
 
                 pivotPos = leftPos;
 
-                printArray(data, len, leftPos, pivotPos, rightPos, "Поменяли L и R, где R было P");
+                PrintArray(data, len, leftPos, pivotPos, rightPos, "Поменяли L и R, где R было P");
             }
 
         }
         else if (leftPos == pivotPos) {
 
             assert(leftPos == pivotPos);
-            printArray(data, len, leftPos, pivotPos, rightPos, "Берем L = P.");
+            PrintArray(data, len, leftPos, pivotPos, rightPos, "Берем L = P.");
 
             while (rightPos > pivotPos) {
                 assert(rightPos > pivotPos);
-                printArray(data, len, leftPos, pivotPos, rightPos, "Ищем R, который подойдет");
+                PrintArray(data, len, leftPos, pivotPos, rightPos, "Ищем R, который подойдет");
 
                 if (CompareMachine(&data[rightPos], &pivot) < 0) {
 
@@ -510,7 +510,7 @@ struct TextString* quickSortStr
 
                     pivotPos = rightPos;
 
-                    printArray(data, len, leftPos, pivotPos, rightPos, "Поменяли L и R, где L было P.");
+                    PrintArray(data, len, leftPos, pivotPos, rightPos, "Поменяли L и R, где L было P.");
                     break;
                 }
 
@@ -521,7 +521,7 @@ struct TextString* quickSortStr
         else {
 
             if (leftPos + 1 == rightPos) {
-                printArray(data, len, leftPos, pivotPos, rightPos, "Конец.");
+                PrintArray(data, len, leftPos, pivotPos, rightPos, "Конец.");
                 break;
             }
             leftPos++;
@@ -529,7 +529,7 @@ struct TextString* quickSortStr
             assert(leftPos < rightPos);
             assert(leftPos < len && rightPos < len);
 
-            printArray(data, len, leftPos, pivotPos, rightPos, "Смотрим следующий L.");
+            PrintArray(data, len, leftPos, pivotPos, rightPos, "Смотрим следующий L.");
 
         }
     }
@@ -542,23 +542,23 @@ struct TextString* quickSortStr
 }
 
 // int CompareMachineOld(const void* str1, const void* str2) {
-//     return strcmp_new(*(char**)str1, *(char**)str2);
+//     return StrCmpNew(*(char**)str1, *(char**)str2);
 // }
 
 int CompareMachine(const void* a, const void* b) {
     const struct TextString* str1 = a;
     const struct TextString* str2 = b;
-    return strcmp_new(*str1, *str2);
+    return StrCmpNew(*str1, *str2);
 }
 
 // int CompareMachine2Old(const void* str1, const void* str2) {
-//     return strcmprev_new(*(char* *) str1, *(char* *) str2);
+//     return StrCmpRevNew(*(char* *) str1, *(char* *) str2);
 // }
 
 int CompareMachine2(const void* a, const void* b) {
     const struct TextString* str1 = a;
     const struct TextString* str2 = b;
-    return strcmprev_new(*str1, *str2);
+    return StrCmpRevNew(*str1, *str2);
 }
 
 
