@@ -32,15 +32,27 @@ struct TextString {
     size_t len;
 };
 
-void PrintNStr(char* data[], int nEl) {
-    for (int i = 0; i < nEl; i++) {
-        printf("%d: [%p] = <%s>\n", i, data[i], data[i]);
-    }
-}
-
 void PrintStr(char* data) {
         printf("[%p] = <%s>\n", data, data);
 }
+
+void PrintNStr(char* data[], int nEl) {
+    for (int i = 0; i < nEl; i++) {
+        PrintStr(data[i]); //done
+    }
+}
+
+size_t CountLenOfTextStrings(const struct TextString data[]){
+    if (!data[0].string){
+        return 0;
+    }
+    size_t len = 0;
+    while (data[len].string) {
+        len++;
+    }
+    return len;
+}
+
 
 int CleanFile(const char* filename) {
 
@@ -59,7 +71,7 @@ int CleanFile(const char* filename) {
 //NEW
 size_t GetSizeOfFile(const char* filename) {
 
-    struct stat baff;
+    struct stat baff = {};
 
     // при успехе возвращает 0 => рассматрвиаем не успех
     if (stat(filename, &baff)) {
@@ -84,9 +96,11 @@ void* BuffDup(char buffer[]) {
 //OLD
 int ReadFileAndKeepIt(const char* filename, char* index_arr[]) {
 
+    const int MAX_BUFFER_LENGTH = 10*1000;
+
     FILE* file = fopen(filename, "r");
 
-    char buffer[100000] = "";
+    char buffer[MAX_BUFFER_LENGTH] = ""; // done
 
     int idx_count = 0;
 
@@ -96,18 +110,22 @@ int ReadFileAndKeepIt(const char* filename, char* index_arr[]) {
     }
 
     while ((fgets(buffer, 256, file))!=NULL) {
+
         int len = strlen (buffer);
 
         //замена \n на \0 для удобного дальнейшего дебага
         if (len >= 1 && buffer[len-1] == '\n') buffer[len-1] = '\0';
 
         void* ptr = BuffDup(buffer);
+
         index_arr[idx_count] = ptr;
         idx_count++;
+
     }
 
     fclose(file);
     return 0;
+
 }
 
 //NEW
@@ -120,7 +138,7 @@ int ReadFile(const char* filename, struct TextString data[], char* BUFFER) {
     void* ptr = calloc(1, flen+8); //8 для запаса
     BUFFER = ptr;
 
-    if (fd == -1){ printf(RED "Неудачное открытие файла!\n" RESET); return -errno; }
+    if (fd == -1){ printf(RED "Не удалось открыть файл: %s!\n" RESET, filename); return -errno; } //done
 
 
     size_t bytesRead = read(fd, ptr, flen);
@@ -133,15 +151,21 @@ int ReadFile(const char* filename, struct TextString data[], char* BUFFER) {
 
     //пока символ не равен \0
     while (count < bytesRead) {
+
         if (*((char*)ptr + count + 1)  &&  *((char*)ptr + count) == '\n') {
+
             *((char*)ptr + count) = '\0'; //не меняем, тк тогда например запись файла будет
             count++;
+
             data[index_count].string = (char*)ptr + count;
+
             data[index_count-1].len = len_count;
             len_count = 0;
+
             index_count++;
             continue;
         }
+
         len_count++;
         count++;
     }
@@ -157,6 +181,7 @@ int ReadFile(const char* filename, struct TextString data[], char* BUFFER) {
     */
 
     return 0;
+
 }
 
 //OLD
@@ -187,24 +212,19 @@ int WriteToFile(const char* filename, char** data) {
 // NEW
 int WriteFile(const char* filename, struct TextString data[]) {
 
-    int fd = open(filename, O_WRONLY | O_APPEND);
+    FILE* fp = fopen(filename, "a");
 
-    size_t flen = GetSizeOfFile(filename);
+    if (fp == NULL){ printf(RED "Неудачное открытие файла!\n" RESET); return -errno; }
 
-    // void* ptr = calloc(1, flen+8);
-
-    if (fd == -1){ printf(RED "Неудачное открытие файла!\n" RESET); return -errno; }
-
-    int count =0;
+    int count = 0;
     while ( data[count].string ) {
-        write(fd, data[count].string, data[count].len);
-        write(fd, "\n", 1);
-         // ТАК НОРМ ДЕЛАТЬ?
+        fputs(data[count].string, fp); //done
+        fputs("\n", fp);
         count++;
     }
-    write(fd, "\0", 1);
+    fputs("\0", fp);
 
-
+    fclose(fp);
     return 0;
 }
 
@@ -212,6 +232,7 @@ int StrCmpRevNew(const struct TextString str1, const struct TextString str2) {
 
     int len1 = str1.len, len2 = str2.len;
     int count1 = len1 - 1, count2 = len2 - 1;
+
     if (str1.string == NULL && str2.string == NULL) {
         return 0;
     }
@@ -232,9 +253,13 @@ int StrCmpRevNew(const struct TextString str1, const struct TextString str2) {
             count2--;
         }
 
-        int char_difference = str1.string[count1]-str2.string[count2];
+
+
         if (count1 >=0 && count2 >=0) {
+
+            int char_difference = str1.string[count1]-str2.string[count2]; //done bus
             if (!char_difference) {
+
                 if ( !str1.string[count1] && !str2.string[count2] ) {
                     return 0;
                 }
@@ -534,8 +559,10 @@ struct TextString* quickSortStr
         }
     }
     if (left != pivotPos || right!=pivotPos) {
+
         quickSortStr(data, len, left, pivotPos, "ЛЕВАЯ", CompareMachine);
         quickSortStr(data, len, pivotPos+1, right, "ПРАВАЯ", CompareMachine);
+
     }
 
     return data;
@@ -546,9 +573,12 @@ struct TextString* quickSortStr
 // }
 
 int CompareMachine(const void* a, const void* b) {
+
     const struct TextString* str1 = a;
     const struct TextString* str2 = b;
+
     return StrCmpNew(*str1, *str2);
+
 }
 
 // int CompareMachine2Old(const void* str1, const void* str2) {
@@ -556,41 +586,57 @@ int CompareMachine(const void* a, const void* b) {
 // }
 
 int CompareMachine2(const void* a, const void* b) {
+
     const struct TextString* str1 = a;
     const struct TextString* str2 = b;
+
     return StrCmpRevNew(*str1, *str2);
+
 }
 
 
-int main(void) {
+int main(int argc, char *argv[]) {
 
     const int MAX_LENGTH = 10*1000;
-    char* BUFFER = {};
-    const char* IN = "onegin.txt";
-    const char* OUT = "onegin_out.txt";
+    char* text_buffer = {}; //done rename
+
+    const char* IN_FILE = "onegin.txt";
+    const char* OUT_FILE = "onegin_out.txt";
+
+    if(argc == 2){ //done
+        IN_FILE = argv[1];
+        OUT_FILE = "onegin_out.txt";
+    }
+    else if(argc == 3){
+        IN_FILE = argv[1];
+        OUT_FILE = argv[2];
+    }
+    else {
+        printf("Дополнительные файлы не были уточнены. Использую файлы по умолчанию.");
+    }
+
+
     struct TextString index_arr[MAX_LENGTH] = {};
     struct TextString index_backup[MAX_LENGTH] = {};
 
-    CleanFile(OUT);
 
-    if (ReadFile(IN, index_arr, BUFFER) || ReadFile(IN, index_backup, BUFFER)){
-        printf("Ошибка в чтении файла.");
+
+    if (ReadFile(IN_FILE, index_arr, text_buffer) != 0 || ReadFile(IN_FILE, index_backup, text_buffer) != 0){
         return -1;
     }
 
-    size_t len = 0;
-    while (index_arr[len].string) {
-        len++;
-    }
+    CleanFile(OUT_FILE);
+
+    size_t len = CountLenOfTextStrings(index_arr);
 
     quickSortStr(index_arr, len, 0, len-1, "", CompareMachine);
 
-    WriteFile(OUT, index_arr);
+    WriteFile(OUT_FILE, index_arr);
 
     qsort(index_arr, len, sizeof(struct TextString), CompareMachine2);
 
-    WriteFile(OUT, index_arr);
-    WriteFile(OUT, index_backup);
+    WriteFile(OUT_FILE, index_arr);
+    WriteFile(OUT_FILE, index_backup);
 
     return 0;
 }
