@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <time.h>
 
 #define RED "\033[31m"
 #define CYAN "\033[36m"
@@ -32,12 +33,18 @@ struct TextString {
     size_t len;
 };
 
+typedef struct {
+    char* first_str;
+    char* second_str;
+} StrPair;
+
 void PrintStr(char* data) {
         printf("[%p] = <%s>\n", data, data);
 }
 
 void PrintNStr(char* data[], int nEl) {
     for (int i = 0; i < nEl; i++) {
+        printf("[%03d]: ", nEl);
         PrintStr(data[i]); //done
     }
 }
@@ -87,7 +94,7 @@ void* BuffDup(char buffer[]) {
 
     size_t row_len = strlen(buffer);
     void* ptr = calloc(row_len+1, sizeof(char));
-    strcpy(ptr, buffer);
+    strcpy((char*)ptr, buffer);
 
     return ptr;
 }
@@ -129,16 +136,16 @@ int ReadFileAndKeepIt(const char* filename, char* index_arr[]) {
 }
 
 //NEW
-int ReadFile(const char* filename, struct TextString data[], char* BUFFER) {
+int ReadFile(const char* filename, struct TextString data[], char** buffer) {
 
     int fd = open(filename, O_RDONLY);
 
     size_t flen = GetSizeOfFile(filename);
 
     void* ptr = calloc(1, flen+8); //8 для запаса
-    BUFFER = ptr;
+    *buffer = ptr;
 
-    if (fd == -1){ printf(RED "Не удалось открыть файл: %s!\n" RESET, filename); return -errno; } //done
+    if (fd == -1){ printf(RED "ERROR: Не удалось открыть файл \"%s\"!\n" RESET, filename); return -errno; } //done
 
 
     size_t bytesRead = read(fd, ptr, flen);
@@ -214,10 +221,14 @@ int WriteFile(const char* filename, struct TextString data[]) {
 
     FILE* fp = fopen(filename, "a");
 
-    if (fp == NULL){ printf(RED "Неудачное открытие файла!\n" RESET); return -errno; }
+    if (fp == NULL){ printf(RED "ERROR: Не удалось открыть файл \"%s\"!\n" RESET, filename); return -errno; }
 
     int count = 0;
     while ( data[count].string ) {
+        if (strcmp(data[count].string, "") == 0){
+            count++;
+            continue;
+        }
         fputs(data[count].string, fp); //done
         fputs("\n", fp);
         count++;
@@ -252,8 +263,6 @@ int StrCmpRevNew(const struct TextString str1, const struct TextString str2) {
         while (count2>=0 && !isalpha(str2.string[count2])) {
             count2--;
         }
-
-
 
         if (count1 >=0 && count2 >=0) {
 
@@ -574,8 +583,8 @@ struct TextString* quickSortStr
 
 int CompareMachine(const void* a, const void* b) {
 
-    const struct TextString* str1 = a;
-    const struct TextString* str2 = b;
+    const struct TextString* str1 = (struct TextString*) a;
+    const struct TextString* str2 = (struct TextString*) b;
 
     return StrCmpNew(*str1, *str2);
 
@@ -595,48 +604,145 @@ int CompareMachine2(const void* a, const void* b) {
 }
 
 
+char getFirstLetterInWordAfterSpace(struct TextString word){
+    char* first_str = word.string;
+    size_t len_of_first = word.len;
+    char first_letter = ' ';
+
+    for (int i = len_of_first; first_str[i] != ' '; i--){
+        first_letter = first_str[i];
+    }
+
+    return first_letter;
+}
+
+char getLastLetterInWord(struct TextString word){
+    char* first_str = word.string;
+    size_t len_of_first = word.len;
+
+    int i = len_of_first;
+
+    while (!isalpha(first_str[i])){
+        i--;
+    }
+
+    return first_str[i];
+}
+
+char getPreLastLetterInWord(struct TextString word){
+    char* first_str = word.string;
+    size_t len_of_first = word.len;
+
+    int i = len_of_first;
+
+    while (!isalpha(first_str[i])){
+        i--;
+    }
+
+    return first_str[i-1];
+}
+
+char getPrePreLastLetterInWord(struct TextString word){
+    char* first_str = word.string;
+    size_t len_of_first = word.len;
+
+    int i = len_of_first;
+
+    while (!isalpha(first_str[i])){
+        i--;
+    }
+
+    return first_str[i-2];
+}
+
+
+StrPair getPairOfRandomStrings(const struct TextString data[]){
+
+    StrPair pair = {};
+
+    int rsn = ( rand() % 6135 ); //random_string_number
+
+    while (data[rsn].len < 9){
+        rsn = ( rand() % 6135 );
+    }
+
+    char first_let_in_first_str      = getFirstLetterInWordAfterSpace (data[rsn]);
+    char last_let_in_first_str       = getLastLetterInWord            (data[rsn]);
+    char prelast_let_in_first_str    = getPreLastLetterInWord         (data[rsn]);
+    char preprelast_let_in_first_str = getPrePreLastLetterInWord      (data[rsn]);
+
+    int rsn2 = ( rand() % 6135 );
+
+    while (!
+           (
+              data[rsn].len > 9
+           && getFirstLetterInWordAfterSpace (data[rsn2]) != first_let_in_first_str
+           && getLastLetterInWord            (data[rsn2]) == last_let_in_first_str
+           && getPreLastLetterInWord         (data[rsn2]) == prelast_let_in_first_str
+           && getPrePreLastLetterInWord      (data[rsn2]) == preprelast_let_in_first_str
+           )
+    )
+    {
+        rsn2 = ( rand() % 6135 );
+    }
+
+    // printf("rsn is %d", rsn);
+    // printf("rsn2 is %d", rsn2);
+
+
+    pair.first_str = data[rsn].string;
+    pair.second_str = data[rsn2].string;
+
+    return pair;
+}
+
+
+//передаем массив, отсортированный по окончаниям, так же кол-во двоестиший.
+void PrintBred(const struct TextString data[], int nStr){
+
+    StrPair pair = {};
+    for (int i = 0; i < nStr; i++){
+        pair = getPairOfRandomStrings(data);
+        printf("%s\n", pair.first_str);
+        printf("%s\n", pair.second_str);
+        printf("\n");
+    }
+    return;
+}
+
+
 int main(int argc, char *argv[]) {
+    srand(time(NULL));
 
     const int MAX_LENGTH = 10*1000;
     char* text_buffer = {}; //done rename
 
-    const char* IN_FILE = "onegin.txt";
-    const char* OUT_FILE = "onegin_out.txt";
-
-    if(argc == 2){ //done
-        IN_FILE = argv[1];
-        OUT_FILE = "onegin_out.txt";
-    }
-    else if(argc == 3){
-        IN_FILE = argv[1];
-        OUT_FILE = argv[2];
-    }
-    else {
-        printf("Дополнительные файлы не были уточнены. Использую файлы по умолчанию.");
-    }
-
+    const char* in_file = (argc >= 2) ? argv[1] : "onegin.txt";
+    const char* out_file = (argc >= 3) ? argv[2] : "onegin_out.txt";
 
     struct TextString index_arr[MAX_LENGTH] = {};
     struct TextString index_backup[MAX_LENGTH] = {};
 
 
-
-    if (ReadFile(IN_FILE, index_arr, text_buffer) != 0 || ReadFile(IN_FILE, index_backup, text_buffer) != 0){
+    if (ReadFile(in_file, index_arr, &text_buffer) != 0 || ReadFile(in_file, index_backup, &text_buffer) != 0){
         return -1;
     }
 
-    CleanFile(OUT_FILE);
+    CleanFile(out_file);
 
     size_t len = CountLenOfTextStrings(index_arr);
 
     quickSortStr(index_arr, len, 0, len-1, "", CompareMachine);
 
-    WriteFile(OUT_FILE, index_arr);
+    WriteFile(out_file, index_arr);
 
     qsort(index_arr, len, sizeof(struct TextString), CompareMachine2);
 
-    WriteFile(OUT_FILE, index_arr);
-    WriteFile(OUT_FILE, index_backup);
+
+    WriteFile(out_file, index_arr);
+    WriteFile(out_file, index_backup);
+
+    PrintBred(index_arr, 10);
 
     return 0;
 }
